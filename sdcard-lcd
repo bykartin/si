@@ -1,0 +1,100 @@
+#include <LiquidCrystal_I2C.h>
+LiquidCrystal_I2C lcd(0x27, 16, 2);
+#include <Wire.h>
+
+#include <SD.h>
+#include <SPI.h>
+#include "Adafruit_Si7021.h"
+
+
+Adafruit_Si7021 sensor = Adafruit_Si7021();
+File myFile;
+
+int pinCS = 4; // Pin 4 on Arduino Uno
+void setup() {
+  lcd.begin();
+  lcd.backlight();
+ 
+  Serial.begin(9600);
+  pinMode(pinCS, OUTPUT);
+  
+  // SD Card Initialization
+  if (SD.begin())
+  {
+    Serial.println("SD card is ready to use.");
+  } else
+  {
+    Serial.println("SD card initialization failed");
+    return;
+  }  // wait for serial port to open
+  while (!Serial) {
+    delay(10);
+  }
+
+  Serial.println("Si7021 test!");
+  
+  if (!sensor.begin()) {
+    Serial.println("Did not find Si7021 sensor!");
+    while (true)
+      ;
+  }
+
+  Serial.print("Found model ");
+  switch(sensor.getModel()) {
+    case SI_Engineering_Samples:
+      Serial.print("SI engineering samples"); break;
+    case SI_7013:
+      Serial.print("Si7013"); break;
+    case SI_7020:
+      Serial.print("Si7020"); break;
+    case SI_7021:
+      Serial.print("Si7021"); break;
+    case SI_UNKNOWN:
+    default:
+      Serial.print("Unknown");
+  }
+  
+  Serial.print(" Rev(");
+  Serial.print(sensor.getRevision());
+  Serial.print(")");
+  Serial.print(" Serial #"); Serial.print(sensor.sernum_a, HEX); Serial.println(sensor.sernum_b, HEX);
+
+}
+void loop() {
+ 
+  myFile = SD.open("hum.txt", FILE_WRITE);
+  if (myFile) {    
+    myFile.println(sensor.readHumidity(), 2);
+    myFile.close(); // close the file
+  }
+  // if the file didn't open, print an error:
+  else {
+    Serial.println("error opening test.txt");
+  }
+
+  myFile = SD.open("temp.txt", FILE_WRITE);
+  if (myFile) {     
+    myFile.println(sensor.readTemperature(), 2);
+    myFile.close(); // close the file
+  }
+  // if the file didn't open, print an error:
+  else {
+    Serial.println("error opening test.txt");
+  }
+  
+  Serial.print("Humidity:    ");
+  //Serial.print(",");
+  Serial.print(sensor.readHumidity(), 2);
+  Serial.print("\tTemperature: ");
+  //Serial.print(",");
+  Serial.println(sensor.readTemperature(), 2);
+
+  lcd.setCursor(0, 0);
+  lcd.print("HUM(%):");
+  lcd.print(sensor.readHumidity(), 2);// Read to humidity
+  lcd.setCursor(0, 1);
+  lcd.print("TEMP:");
+  lcd.print(sensor.readTemperature(), 2);// Read to temperature
+
+  delay(1000);
+}
